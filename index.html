@@ -69,6 +69,14 @@
 'use strict';
 
 // ═══════════════════════════════════════════════
+// ОПРЕДЕЛЕНИЕ УСТРОЙСТВА И НАСТРОЙКИ
+// ═══════════════════════════════════════════════
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const TARGET_FPS = isMobile ? 30 : 60;
+const FRAME_TIME = 1000 / TARGET_FPS;
+
+// ═══════════════════════════════════════════════
 // ИНИЦИАЛИЗАЦИЯ WEBGL
 // ═══════════════════════════════════════════════
 
@@ -650,7 +658,8 @@ function gridGeo(size, div) {
 }
 
 const SKY_G = skyboxGeo();
-const TER_G = gridGeo(320, 230);
+// На телефонах меньше вершин для производительности
+const TER_G = gridGeo(320, isMobile ? 150 : 230);
 
 const skyVB = mkBuf(SKY_G.vb);
 const skyIB = mkBuf(SKY_G.ib, gl.ELEMENT_ARRAY_BUFFER);
@@ -753,7 +762,6 @@ canvas.addEventListener('touchstart', e => {
 canvas.addEventListener('touchmove', e => {
   e.preventDefault();
   for (const t of e.changedTouches) {
-    // Левый палец — движение
     if (touchLeft && t.identifier === touchLeft.id) {
       const dx = t.clientX - touchLeft.x;
       const dy = t.clientY - touchLeft.y;
@@ -763,7 +771,6 @@ canvas.addEventListener('touchmove', e => {
       cam.pos[2] -= dx * r[2] * sp * 0.3 + dy * f[2] * sp * 0.3;
       touchLeft.x = t.clientX; touchLeft.y = t.clientY;
     }
-    // Правый палец — вращение
     if (touchRight && t.identifier === touchRight.id) {
       cam.yaw   += (t.clientX - touchRight.x) * 0.005;
       cam.pitch -= (t.clientY - touchRight.y) * 0.005;
@@ -780,7 +787,6 @@ canvas.addEventListener('touchend', e => {
   }
 });
 
-// Pinch-zoom
 let lastPinchDist = 0;
 canvas.addEventListener('touchstart', e => {
   if (e.touches.length === 2) {
@@ -851,7 +857,10 @@ let last = 0, dayT = 0.30;
 function draw(now) {
   requestAnimationFrame(draw);
   
-  const dt = Math.min((now - last) / 1000, 0.05);
+  // Энергосбережение на мобильных: ограничиваем FPS
+  if (now - last < FRAME_TIME - 2) return;
+  
+  const dt = Math.min((now - last) / 1000, isMobile ? 0.033 : 0.05);
   last = now;
   
   if (sAuto.checked) {
